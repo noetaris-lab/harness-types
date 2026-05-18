@@ -1,0 +1,47 @@
+{
+  "name": "@noetaris/harness-types",
+  "version": "0.1.0",
+  "description": "Shared LLM type contract for the @noetaris/harness ecosystem",
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/noetaris-lab/harness-types.git"
+  },
+  "homepage": "https://github.com/noetaris-lab/harness-types#readme",
+  "bugs": {
+    "url": "https://github.com/noetaris-lab/harness-types/issues"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "tsup",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "prepublishOnly": "pnpm build && pnpm test",
+    "publish:npm": "pnpm publish --access public --no-git-checks"
+  },
+  "files": [
+    "dist"
+  ],
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild"
+    ]
+  },
+  "devDependencies": {
+    "@types/node": "^25.8.0",
+    "tsup": "^8.5.1",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.6"
+  }
+}
