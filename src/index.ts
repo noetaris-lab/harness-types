@@ -21,6 +21,12 @@ export interface LLMResponse {
   stopReason: 'end' | 'tool_use' | 'max_tokens'
 }
 
+export interface LLMUsageEvent {
+  tokens:     { input: number; output: number }
+  modelId:    string
+  stopReason: LLMResponse['stopReason']
+}
+
 export interface LLM {
   invoke(messages: Message[], options?: { tools?: Tool[] }): Promise<LLMResponse>
 }
