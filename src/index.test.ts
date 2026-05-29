@@ -1,5 +1,5 @@
-import { describe, it, expectTypeOf } from 'vitest'
-import type { Message, Tool, ToolCall, LLMResponse, LLM } from './index.js'
+import { describe, it, expectTypeOf, expect } from 'vitest'
+import type { Message, Tool, ToolCall, LLMResponse, LLM, ToolCallEvent, ToolResultEvent } from './index.js'
 
 describe('Message discriminated union', () => {
 
@@ -90,6 +90,76 @@ describe('LLM', () => {
       })
     }
     expectTypeOf(adapter).toExtend<LLM>()
+  })
+
+})
+
+describe('ToolCallEvent and ToolResultEvent', () => {
+
+  describe('ToolResultEvent optional field presence', () => {
+
+    it('result and error are absent when not provided on ToolResultEvent', () => {
+      // arrange
+      const event: ToolResultEvent = {
+        toolName: 'search',
+        toolCallId: 'tc-abc',
+        durationMs: 42,
+      }
+
+      // act / assert
+      expect(event.result).toBeUndefined()
+      expect(event.error).toBeUndefined()
+    })
+
+    it('input is absent when not provided on ToolCallEvent', () => {
+      // arrange
+      const event: ToolCallEvent = {
+        toolName: 'search',
+        toolCallId: 'tc-abc',
+      }
+
+      // act / assert
+      expect(event.input).toBeUndefined()
+    })
+
+    it('result and error can coexist on a single ToolResultEvent', () => {
+      // arrange
+      const event: ToolResultEvent = {
+        toolName: 'search',
+        toolCallId: 'tc-abc',
+        durationMs: 100,
+        result: { hits: 3 },
+        error: new Error('partial failure'),
+      }
+
+      // act / assert
+      expect(event.result).toEqual({ hits: 3 })
+      expect(event.error).toBeInstanceOf(Error)
+    })
+
+  })
+
+  describe('toolCallId correlation', () => {
+
+    it('toolCallId is equal on a matching ToolCallEvent and ToolResultEvent pair', () => {
+      // arrange
+      const callEvent: ToolCallEvent = {
+        toolName: 'read_file',
+        toolCallId: 'tc-xyz-999',
+        input: { path: '/tmp/data.txt' },
+      }
+      const resultEvent: ToolResultEvent = {
+        toolName: 'read_file',
+        toolCallId: 'tc-xyz-999',
+        durationMs: 87,
+        result: 'file contents here',
+      }
+
+      // act / assert
+      expect(callEvent.toolCallId).toBe(resultEvent.toolCallId)
+      expect(callEvent.toolCallId).toBe('tc-xyz-999')
+    })
+
   })
 
 })

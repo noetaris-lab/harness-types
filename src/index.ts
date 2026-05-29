@@ -64,6 +64,31 @@ export interface LLMUsageEvent {
 }
 
 /**
+ * Payload emitted on `"tool.call"` before a tool is dispatched.
+ *
+ * `input` is opt-in — it may contain sensitive data; omit by default.
+ */
+export interface ToolCallEvent {
+  toolName:   string
+  toolCallId: string
+  input?:     unknown
+}
+
+/**
+ * Payload emitted on `"tool.result"` after a tool completes or throws.
+ *
+ * `result` and `error` are opt-in — they may contain sensitive data; omit by default.
+ * Set `error` when the tool threw; leave it absent on success.
+ */
+export interface ToolResultEvent {
+  toolName:   string
+  toolCallId: string
+  durationMs: number
+  result?:    unknown
+  error?:     unknown
+}
+
+/**
  * Core interface every LLM adapter must implement.
  *
  * @example
