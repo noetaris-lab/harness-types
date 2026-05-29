@@ -58,9 +58,10 @@ export interface LLMResponse {
  * Adapters that cannot report real token counts (e.g. mock adapters) emit `{ input: 0, output: 0 }`.
  */
 export interface LLMUsageEvent {
-  tokens:     { input: number; output: number }
-  modelId:    string
-  stopReason: LLMResponse['stopReason']
+  tokens:       { input: number; output: number }
+  modelId:      string
+  stopReason:   LLMResponse['stopReason']
+  providerName: string
 }
 
 /**
