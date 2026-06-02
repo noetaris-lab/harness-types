@@ -1,5 +1,5 @@
 import { describe, it, expectTypeOf, expect } from 'vitest'
-import type { Message, Tool, ToolCall, LLMResponse, LLM, ToolCallEvent, ToolResultEvent } from './index.js'
+import type { Message, Tool, ToolCall, LLMResponse, LLM, ToolCallEvent, ToolResultEvent, LLMRequestEvent, LLMUsageEvent } from './index.js'
 
 describe('Message discriminated union', () => {
 
@@ -160,6 +160,69 @@ describe('ToolCallEvent and ToolResultEvent', () => {
       expect(callEvent.toolCallId).toBe('tc-xyz-999')
     })
 
+  })
+
+})
+
+describe('LLMRequestEvent optional field presence', () => {
+
+  it('returns undefined for messages and tools when constructed with only required fields', () => {
+    // arrange
+    const event: LLMRequestEvent = { modelId: 'gpt-4o', providerName: 'openai' }
+
+    // act
+    const messages = event.messages
+    const tools = event.tools
+
+    // assert
+    expect(messages).toBeUndefined()
+    expect(tools).toBeUndefined()
+  })
+
+  it('carries exact values for all four fields when constructed with messages and tools', () => {
+    // arrange
+    const msgs = [{ role: 'user', content: 'hello' }]
+    const tools = [{ name: 'search', description: 'web search', inputSchema: {} }]
+    const event: LLMRequestEvent = { modelId: 'claude-3-opus', providerName: 'anthropic', messages: msgs, tools: tools }
+
+    // act
+    const modelId = event.modelId
+    const providerName = event.providerName
+    const eventMessages = event.messages
+    const eventTools = event.tools
+
+    // assert
+    expect(modelId).toBe('claude-3-opus')
+    expect(providerName).toBe('anthropic')
+    expect(eventMessages).toBe(msgs)
+    expect(eventTools).toBe(tools)
+  })
+
+})
+
+describe('LLMUsageEvent backward-compatible output field', () => {
+
+  it('output is undefined when LLMUsageEvent is constructed without it', () => {
+    // arrange
+    const event: LLMUsageEvent = { tokens: { input: 10, output: 5 }, modelId: 'gemini-1.5-pro', stopReason: 'end', providerName: 'google' }
+
+    // act
+    const output = event.output
+
+    // assert
+    expect(output).toBeUndefined()
+  })
+
+  it('output holds the exact supplied value when included in LLMUsageEvent', () => {
+    // arrange
+    const response = { text: 'hello', toolCalls: [], stopReason: 'end' }
+    const event: LLMUsageEvent = { tokens: { input: 8, output: 12 }, modelId: 'llama3', stopReason: 'end', providerName: 'ollama', output: response }
+
+    // act
+    const output = event.output
+
+    // assert
+    expect(output).toBe(response)
   })
 
 })

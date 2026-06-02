@@ -53,15 +53,33 @@ export interface LLMResponse {
 }
 
 /**
+ * Payload emitted by LLM adapters as an `"llm.request"` observer event,
+ * immediately before the provider call is made.
+ *
+ * `messages` and `tools` are opt-in — they may contain sensitive data and are
+ * typed as `unknown` because adapters pass their internal translated
+ * representations; the framework never inspects this content.
+ */
+export interface LLMRequestEvent {
+  modelId:      string
+  providerName: string
+  messages?:    unknown   // opt-in; adapter's internal translated representation
+  tools?:       unknown   // opt-in; adapter's internal translated representation
+}
+
+/**
  * Token-usage payload emitted by LLM adapters as an `llm.response` observer event.
  *
  * Adapters that cannot report real token counts (e.g. mock adapters) emit `{ input: 0, output: 0 }`.
+ *
+ * `output` is opt-in — it may contain sensitive data; adapters default to omitting it.
  */
 export interface LLMUsageEvent {
   tokens:       { input: number; output: number }
   modelId:      string
   stopReason:   LLMResponse['stopReason']
   providerName: string
+  output?:      unknown   // opt-in; normalized LLMResponse or raw provider output; may be sensitive
 }
 
 /**
