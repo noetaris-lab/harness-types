@@ -87,6 +87,7 @@ describe('LLM', () => {
         text: 'response',
         toolCalls: [],
         stopReason: 'end',
+        usage: { inputTokens: 0, outputTokens: 0 },
       })
     }
     expectTypeOf(adapter).toExtend<LLM>()
@@ -223,6 +224,141 @@ describe('LLMUsageEvent backward-compatible output field', () => {
 
     // assert
     expect(output).toBe(response)
+  })
+
+})
+
+describe('LLMResponse.usage presence and content', () => {
+
+  it('returns inputTokens and outputTokens from usage when contextWindowSize is present', () => {
+    // arrange
+    const response: LLMResponse = {
+      text: 'hello',
+      toolCalls: [],
+      stopReason: 'end',
+      usage: { inputTokens: 150, outputTokens: 42, contextWindowSize: 200000 },
+    }
+
+    // act / assert
+    expect(response.usage.inputTokens).toBe(150)
+    expect(response.usage.outputTokens).toBe(42)
+    expect(response.usage.contextWindowSize).toBe(200000)
+  })
+
+  it('contextWindowSize is a positive integer when present', () => {
+    // arrange
+    const response: LLMResponse = {
+      text: '',
+      toolCalls: [],
+      stopReason: 'tool_use',
+      usage: { inputTokens: 1000, outputTokens: 0, contextWindowSize: 128000 },
+    }
+
+    // act / assert
+    expect(response.usage.contextWindowSize).toBeGreaterThan(0)
+    expect(Number.isInteger(response.usage.contextWindowSize)).toBe(true)
+  })
+
+})
+
+describe('LLMResponse.usage when contextWindowSize is unknown', () => {
+
+  it('usage is present with valid token counts when contextWindowSize is undefined', () => {
+    // arrange
+    const response: LLMResponse = {
+      text: 'result',
+      toolCalls: [],
+      stopReason: 'max_tokens',
+      usage: { inputTokens: 500, outputTokens: 100 },
+    }
+
+    // act / assert
+    expect(response.usage).toBeDefined()
+    expect(response.usage.inputTokens).toBe(500)
+    expect(response.usage.outputTokens).toBe(100)
+    expect(response.usage.contextWindowSize).toBeUndefined()
+  })
+
+  it('mock adapter usage has zero token counts and undefined contextWindowSize', () => {
+    // arrange
+    const mockResponse: LLMResponse = {
+      text: '',
+      toolCalls: [],
+      stopReason: 'end',
+      usage: { inputTokens: 0, outputTokens: 0 },
+    }
+
+    // act / assert
+    expect(mockResponse.usage.inputTokens).toBe(0)
+    expect(mockResponse.usage.outputTokens).toBe(0)
+    expect(mockResponse.usage.contextWindowSize).toBeUndefined()
+  })
+
+})
+
+describe('LLMUsageEvent.contextWindowSize field', () => {
+
+  it('LLMUsageEvent.contextWindowSize equals LLMResponse.usage.contextWindowSize for same invocation', () => {
+    // arrange
+    const response: LLMResponse = {
+      text: 'ok',
+      toolCalls: [],
+      stopReason: 'end',
+      usage: { inputTokens: 200, outputTokens: 50, contextWindowSize: 100000 },
+    }
+    // exactOptionalPropertyTypes requires narrowing before assigning optional field
+    const cwSize = response.usage.contextWindowSize
+    const event: LLMUsageEvent = {
+      tokens: { input: 200, output: 50 },
+      modelId: 'test-model',
+      stopReason: 'end',
+      providerName: 'test-provider',
+      ...(cwSize !== undefined ? { contextWindowSize: cwSize } : {}),
+    }
+
+    // act / assert
+    expect(event.contextWindowSize).toBe(response.usage.contextWindowSize)
+    expect(event.contextWindowSize).toBe(100000)
+  })
+
+  it('LLMUsageEvent.contextWindowSize is undefined when adapter does not know', () => {
+    // arrange
+    const event: LLMUsageEvent = {
+      tokens: { input: 100, output: 30 },
+      modelId: 'unknown-model',
+      stopReason: 'end',
+      providerName: 'test-provider',
+    }
+
+    // act / assert
+    expect(event.contextWindowSize).toBeUndefined()
+  })
+
+})
+
+describe('Utilization computation pattern', () => {
+
+  function computeUtilization(usage: LLMResponse['usage']): number | undefined {
+    if (usage.contextWindowSize !== undefined) {
+      return usage.inputTokens / usage.contextWindowSize
+    }
+    return undefined
+  }
+
+  it('computes utilization when contextWindowSize is defined', () => {
+    // arrange
+    const usage = { inputTokens: 50000, outputTokens: 1000, contextWindowSize: 200000 }
+
+    // act / assert
+    expect(computeUtilization(usage)).toBe(0.25)
+  })
+
+  it('returns undefined utilization when contextWindowSize is absent', () => {
+    // arrange
+    const usage = { inputTokens: 50000, outputTokens: 1000 }
+
+    // act / assert
+    expect(computeUtilization(usage)).toBeUndefined()
   })
 
 })
